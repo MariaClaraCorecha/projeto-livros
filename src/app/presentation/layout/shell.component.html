@@ -1,0 +1,103 @@
+<mat-sidenav-container class="container">
+  <mat-sidenav #sidenav [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile()" class="sidenav">
+    <a class="brand" routerLink="/" (click)="closeOnMobile()">
+      <mat-icon class="filled">auto_stories</mat-icon>
+      <span class="display-title">Estante</span>
+    </a>
+
+    <mat-nav-list>
+      @for (s of smartShelves; track s.id) {
+        <a mat-list-item routerLink="/" [queryParams]="s.id === 'todos' ? {} : { estante: s.id }"
+           [activated]="isActive(s.id)" (click)="closeOnMobile()">
+          <mat-icon matListItemIcon>{{ s.icon }}</mat-icon>
+          <span matListItemTitle>{{ s.label }}</span>
+          <span matListItemMeta class="count">{{ count(s.id) }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    <mat-divider />
+    <div class="section-title">
+      <span>Minhas estantes</span>
+      <button mat-icon-button (click)="createShelf()" matTooltip="Nova estante" aria-label="Nova estante">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+
+    <mat-nav-list cdkDropList (cdkDropListDropped)="dropShelf($event)" class="shelves">
+      @for (shelf of library.shelves(); track shelf.id) {
+        <a mat-list-item cdkDrag cdkDragLockAxis="y" routerLink="/" [queryParams]="{ estante: shelf.id }"
+           [activated]="isActive(shelf.id)" (click)="closeOnMobile()">
+          <mat-icon matListItemIcon [style.color]="shelf.color">{{ shelf.icon }}</mat-icon>
+          <span matListItemTitle>{{ shelf.name }}</span>
+          <span matListItemMeta class="count">{{ count(shelf.id) }}</span>
+        </a>
+      } @empty {
+        <p class="empty muted">Crie estantes para organizar seus livros por tema, gênero ou humor.</p>
+      }
+    </mat-nav-list>
+
+    <span class="spacer"></span>
+    <mat-divider />
+    <mat-nav-list>
+      <a mat-list-item routerLink="/personalizar" routerLinkActive #rla="routerLinkActive" [activated]="rla.isActive" (click)="closeOnMobile()">
+        <mat-icon matListItemIcon>palette</mat-icon>
+        <span matListItemTitle>Personalizar</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="content">
+    <mat-toolbar class="toolbar">
+      @if (mobile()) {
+        <button mat-icon-button (click)="sidenav.toggle()" aria-label="Menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+      <label class="search">
+        <mat-icon>search</mat-icon>
+        <input type="search" placeholder="Buscar por título ou autor" [value]="library.query()"
+               (input)="onSearch($any($event.target).value)" aria-label="Buscar livros" />
+      </label>
+      <span class="spacer"></span>
+
+      <button mat-icon-button [matMenuTriggerFor]="themeMenu" matTooltip="Tema" aria-label="Tema">
+        <mat-icon>{{ prefs.dark() ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      </button>
+      <mat-menu #themeMenu="matMenu">
+        @for (t of themeModes; track t.mode) {
+          <button mat-menu-item (click)="setTheme(t.mode)">
+            <mat-icon>{{ t.icon }}</mat-icon>
+            <span>{{ t.label }}</span>
+            @if (prefs.prefs()?.themeMode === t.mode) {
+              <mat-icon class="check">check</mat-icon>
+            }
+          </button>
+        }
+      </mat-menu>
+
+      @if (session.user(); as user) {
+        <button mat-icon-button [matMenuTriggerFor]="userMenu" class="avatar-button" [attr.aria-label]="'Conta de ' + user.name">
+          @if (user.photoUrl) {
+            <img class="avatar" [src]="user.photoUrl" alt="" referrerpolicy="no-referrer" />
+          } @else {
+            <span class="avatar initials">{{ user.name.charAt(0) }}</span>
+          }
+        </button>
+        <mat-menu #userMenu="matMenu" xPosition="before">
+          <div class="user-card" (click)="$event.stopPropagation()">
+            <strong>{{ user.name }}</strong>
+            <span class="muted">{{ user.email ?? (user.isGuest ? 'Modo convidado' : '') }}</span>
+          </div>
+          <mat-divider />
+          <a mat-menu-item routerLink="/personalizar"><mat-icon>palette</mat-icon><span>Personalizar</span></a>
+          <button mat-menu-item (click)="signOut()"><mat-icon>logout</mat-icon><span>Sair</span></button>
+        </mat-menu>
+      }
+    </mat-toolbar>
+
+    <main class="page">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

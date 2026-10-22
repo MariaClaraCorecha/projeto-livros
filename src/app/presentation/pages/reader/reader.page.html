@@ -1,0 +1,85 @@
+<div class="reader" [class.dark-paper]="paper().dark" [style.--paper-bg]="paper().background" [style.--paper-fg]="paper().textColor">
+  <header class="topbar">
+    <a mat-icon-button routerLink="/" matTooltip="Voltar à estante" aria-label="Voltar à estante">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div class="titles">
+      <span class="book-title">{{ book()?.title ?? 'Abrindo…' }}</span>
+      @if (location()?.label; as label) {
+        <span class="chapter">{{ label }}</span>
+      }
+    </div>
+    <span class="spacer"></span>
+    <button mat-icon-button (click)="togglePanel('toc')" [class.on]="panel() === 'toc'" matTooltip="Sumário" aria-label="Sumário">
+      <mat-icon>toc</mat-icon>
+    </button>
+    <button mat-icon-button (click)="togglePanel('notes')" [class.on]="panel() === 'notes'" matTooltip="Anotações" aria-label="Anotações">
+      <mat-icon [matBadge]="annotations().length || null" matBadgeSize="small">ink_highlighter</mat-icon>
+    </button>
+    <button mat-icon-button (click)="togglePanel('appearance')" [class.on]="panel() === 'appearance'" matTooltip="Aparência" aria-label="Aparência">
+      <mat-icon>text_format</mat-icon>
+    </button>
+    <button mat-icon-button (click)="toggleFullscreen()" matTooltip="Tela cheia" aria-label="Tela cheia" class="hide-mobile">
+      <mat-icon>fullscreen</mat-icon>
+    </button>
+  </header>
+
+  <mat-sidenav-container class="body" [hasBackdrop]="false">
+    <mat-sidenav position="end" mode="over" class="panel" [opened]="panel() !== null" (closedStart)="panel.set(null)" autoFocus="false">
+      <div class="panel-header">
+        <h2>
+          @switch (panel()) {
+            @case ('toc') { Sumário }
+            @case ('notes') { Anotações }
+            @case ('appearance') { Aparência }
+          }
+        </h2>
+        <button mat-icon-button (click)="panel.set(null)" aria-label="Fechar painel"><mat-icon>close</mat-icon></button>
+      </div>
+      @switch (panel()) {
+        @case ('toc') {
+          <app-toc-panel [items]="toc()" (navigate)="goTo($event)" />
+        }
+        @case ('notes') {
+          <app-annotations-panel [annotations]="annotations()" [bookTitle]="book()?.title ?? ''"
+                                 (open)="goToAnnotation($event)" (edit)="editAnnotation($event)" (remove)="removeAnnotation($event)" />
+        }
+        @case ('appearance') {
+          <app-appearance-panel [reflowable]="reflowable()" />
+        }
+      }
+    </mat-sidenav>
+
+    <mat-sidenav-content class="stage">
+      <div class="viewport" #viewport></div>
+
+      @if (!loading() && !error()) {
+        <button class="nav prev" (click)="prev()" aria-label="Página anterior"><mat-icon>chevron_left</mat-icon></button>
+        <button class="nav next" (click)="next()" aria-label="Próxima página"><mat-icon>chevron_right</mat-icon></button>
+      }
+
+      @if (loading()) {
+        <div class="overlay"><mat-spinner diameter="44" /><span>Abrindo o livro…</span></div>
+      }
+      @if (error(); as message) {
+        <div class="overlay error">
+          <mat-icon>error</mat-icon>
+          <p>{{ message }}</p>
+          <a mat-flat-button routerLink="/">Voltar à estante</a>
+        </div>
+      }
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+  <footer class="bottombar">
+    <mat-slider class="progress" min="0" max="100" step="0.5" [disabled]="loading() || !!error()">
+      <input matSliderThumb [value]="(location()?.progress ?? 0) * 100" (change)="seek(+$any($event.target).value)" />
+    </mat-slider>
+    <span class="percent">{{ (location()?.progress ?? 0) * 100 | number: '1.0-0' }}%</span>
+  </footer>
+
+  @if (selection(); as sel) {
+    <app-selection-toolbar [quote]="sel.quote" (highlight)="highlight($event)" (comment)="commentSelection()"
+                           (sticker)="stickerSelection()" (copy)="copySelection()" (dismiss)="dismissSelection()" />
+  }
+</div>

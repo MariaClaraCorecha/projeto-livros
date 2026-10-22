@@ -1,0 +1,133 @@
+<div class="library" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+  <input #picker type="file" multiple [accept]="accept" hidden (change)="onFilesPicked($event)" />
+
+  <header class="header">
+    <div class="heading">
+      <h1 class="display-title">{{ title() }}</h1>
+      <span class="muted">{{ library.filteredBooks().length }} livro(s)</span>
+    </div>
+    <span class="spacer"></span>
+
+    <button mat-button [matMenuTriggerFor]="sortMenu">
+      <mat-icon>sort</mat-icon>
+      {{ sorts.find((s) => s.id === library.sort())?.label }}
+    </button>
+    <mat-menu #sortMenu="matMenu">
+      @for (s of sorts; track s.id) {
+        <button mat-menu-item (click)="library.sort.set(s.id)">
+          <span>{{ s.label }}</span>
+          @if (library.sort() === s.id) {
+            <mat-icon class="check">check</mat-icon>
+          }
+        </button>
+      }
+    </mat-menu>
+
+    @if (customShelf(); as shelf) {
+      <button mat-icon-button [matMenuTriggerFor]="shelfMenu" aria-label="Opções da estante">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #shelfMenu="matMenu">
+        <button mat-menu-item (click)="editShelf(shelf)"><mat-icon>edit</mat-icon><span>Editar estante</span></button>
+        <button mat-menu-item (click)="deleteShelf(shelf)"><mat-icon>delete</mat-icon><span>Excluir estante</span></button>
+      </mat-menu>
+    }
+
+    <button mat-flat-button (click)="picker.click()">
+      <mat-icon>upload_file</mat-icon> Adicionar livros
+    </button>
+  </header>
+
+  @if (library.importing() > 0) {
+    <mat-progress-bar mode="indeterminate" class="import-progress" />
+    <p class="muted importing">Lendo {{ library.importing() }} arquivo(s)…</p>
+  }
+
+  @if (empty()) {
+    <section class="empty-state">
+      <div class="empty-shelf" aria-hidden="true">
+        <mat-icon>auto_stories</mat-icon>
+      </div>
+      <h2 class="display-title">Sua estante está vazia</h2>
+      <p class="muted">Arraste arquivos EPUB, PDF ou MOBI para cá, ou escolha no seu computador.</p>
+      <button mat-flat-button (click)="picker.click()"><mat-icon>upload_file</mat-icon> Escolher arquivos</button>
+    </section>
+  } @else {
+    @if (continueReading().length) {
+      <section class="continue">
+        <h2 class="section-heading">Continuar lendo</h2>
+        <div class="continue-row">
+          @for (b of continueReading(); track b.id) {
+            <a class="continue-card" [routerLink]="['/ler', b.id]">
+              <app-book-cover class="mini-cover" [title]="b.title" [author]="b.author" [cover]="b.coverDataUrl" />
+              <div class="continue-info">
+                <strong>{{ b.title }}</strong>
+                <span class="muted">{{ b.author }}</span>
+                <mat-progress-bar mode="determinate" [value]="b.progress * 100" />
+                <span class="muted small">{{ b.progress * 100 | number: '1.0-0' }}%</span>
+              </div>
+            </a>
+          }
+        </div>
+      </section>
+    }
+
+    @if (smartBooks(); as books) {
+      <div class="shelf-row static">
+        @for (book of books; track book.id) {
+          <app-book-card [book]="book" [shelves]="library.shelves()" (action)="onBookAction(book, $event)" />
+        } @empty {
+          <p class="muted">Nenhum livro aqui ainda.</p>
+        }
+      </div>
+    } @else {
+      @if (!canDrag() && library.books().length) {
+        <p class="hint muted">
+          <mat-icon>info</mat-icon>
+          Para arrastar livros entre estantes, use a ordenação "Minha ordem" e limpe a busca.
+        </p>
+      }
+      <div cdkDropListGroup>
+        @for (section of sections(); track trackSection(section)) {
+          <section class="shelf">
+            <header class="shelf-header">
+              <mat-icon [style.color]="section.color">{{ section.icon }}</mat-icon>
+              <h2 class="section-heading">{{ section.name }}</h2>
+              <span class="muted">{{ section.books.length }}</span>
+              @if (section.shelf && view() === 'todos') {
+                <a mat-button [routerLink]="[]" [queryParams]="{ estante: section.id }">Ver estante</a>
+              }
+            </header>
+            <div
+              class="shelf-row"
+              cdkDropList
+              cdkDropListOrientation="mixed"
+              [cdkDropListData]="section.id"
+              [cdkDropListDisabled]="!canDrag()"
+              (cdkDropListDropped)="drop($event)"
+            >
+              @for (book of section.books; track book.id) {
+                <app-book-card cdkDrag [cdkDragData]="book" [book]="book" [shelves]="library.shelves()"
+                               (action)="onBookAction(book, $event)">
+                  <div *cdkDragPlaceholder class="drop-placeholder"></div>
+                </app-book-card>
+              } @empty {
+                <div class="empty-row muted">
+                  <mat-icon>south</mat-icon>
+                  {{ canDrag() ? 'Arraste livros para esta estante' : 'Nenhum livro' }}
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+  }
+
+  @if (draggingFiles()) {
+    <div class="drop-overlay">
+      <mat-icon>file_download</mat-icon>
+      <span>Solte para adicionar {{ customShelf() ? 'em "' + customShelf()!.name + '"' : 'à estante' }}</span>
+    </div>
+  }
+</div>
