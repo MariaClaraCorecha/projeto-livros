@@ -6,8 +6,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$orange-palette,
-        tertiary: mat.$azure-palette,
+        primary: mat.$azure-palette,
+        tertiary: mat.$cyan-palette,
       ),
       typography: Roboto,
       density: 0,
@@ -25,7 +25,7 @@ html {
   --wood-light: light-dark(#c8955f, #6b4a2b);
   --wood-dark: light-dark(#8a5a2e, #3f2a17);
   --wood-shadow: light-dark(rgba(80, 45, 10, 0.35), rgba(0, 0, 0, 0.6));
-  --shelf-wall: light-dark(#f6efe6, #1e1b18);
+  --shelf-wall: light-dark(#eef6fc, #151b21);
   --display-font: 'Fraunces', Georgia, serif;
 }
 
