@@ -26,7 +26,6 @@ interface PageSlot {
   readonly el: HTMLDivElement;
   rendered: boolean;
   task: RenderTask | null;
-  /** Incrementado a cada render/liberação para descartar renderizações obsoletas. */
   generation: number;
 }
 
@@ -38,7 +37,7 @@ interface OutlineNode {
 
 const PAGE_GAP = 16;
 
-/** PDF: layout fixo. Fontes não se aplicam; papel vira filtro e há zoom. */
+
 export class PdfEngine implements ReaderEngine {
   readonly reflowable = false;
 
@@ -256,7 +255,6 @@ export class PdfEngine implements ReaderEngine {
       await layer.render();
       if (generation === slot.generation) this.decoratePage(slot);
     } catch {
-      /* renderização cancelada (página saiu da tela ou zoom mudou) */
     } finally {
       slot.task = null;
     }
@@ -293,8 +291,17 @@ export class PdfEngine implements ReaderEngine {
       }
     };
     const onPointerUp = () => setTimeout(() => this.checkSelection(), 0);
+    let pointerInBook = true;
+    const onPointerDown = (e: PointerEvent) => (pointerInBook = this.scroller.contains(e.target as Node));
+    let selectionTimer: ReturnType<typeof setTimeout> | undefined;
     const onSelectionChange = () => {
-      if (document.getSelection()?.isCollapsed) this.events.selected(null);
+      clearTimeout(selectionTimer);
+      const selection = document.getSelection();
+      if (selection?.isCollapsed) {
+        if (pointerInBook) this.events.selected(null);
+      } else {
+        selectionTimer = setTimeout(() => this.checkSelection(), 350);
+      }
     };
     const onClick = (e: MouseEvent) => {
       const el = (e.target as Element).closest?.(`.${ANN_CLASS}`) as HTMLElement | null;
@@ -304,8 +311,13 @@ export class PdfEngine implements ReaderEngine {
     this.scroller.addEventListener('scroll', onScroll, { passive: true });
     this.scroller.addEventListener('pointerup', onPointerUp);
     this.scroller.addEventListener('click', onClick);
+    document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('selectionchange', onSelectionChange);
-    this.cleanup.push(() => document.removeEventListener('selectionchange', onSelectionChange));
+    this.cleanup.push(() => {
+      clearTimeout(selectionTimer);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('selectionchange', onSelectionChange);
+    });
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     this.resizeObserver = new ResizeObserver(() => {
@@ -328,7 +340,6 @@ export class PdfEngine implements ReaderEngine {
     const layer = page?.querySelector('.textLayer');
     if (!page || !layer || !this.scroller.contains(page)) return;
 
-    // Seleções que atravessam páginas são cortadas no fim da primeira página.
     if (pageOf(range.endContainer) !== page) range.setEnd(layer, layer.childNodes.length);
     const quote = range.toString().replace(/\s+/g, ' ').trim();
     if (!quote) return;

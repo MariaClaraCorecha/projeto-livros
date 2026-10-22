@@ -8,12 +8,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DEFAULT_STICKER_PACKS } from '../../domain/defaults';
 import { StickerRef } from '../../domain/entities';
 import { PreferencesStore } from '../state/preferences.store';
+import { STICKER_IMPORT_ACCEPT, StickerImporter } from '../shared/sticker-importer';
 import { StickerViewComponent } from '../shared/sticker-view.component';
 
 export type StickerPickerResult = StickerRef | 'remove';
 
 @Component({
   selector: 'app-sticker-picker-dialog',
+  host: { '(window:paste)': 'onPaste($event)' },
   imports: [MatDialogModule, MatButtonModule, MatTabsModule, MatIconModule, MatTooltipModule, RouterLink, StickerViewComponent],
   template: `
     <h2 mat-dialog-title>Escolha uma figurinha</h2>
@@ -48,16 +50,22 @@ export type StickerPickerResult = StickerRef | 'remove';
           </div>
         </mat-tab>
         <mat-tab label="Minhas figurinhas">
-          @if (prefs.customStickers().length) {
-            <div class="grid">
-              @for (s of prefs.customStickers(); track s.id) {
-                <button class="cell" (click)="pick({ kind: 'image', value: s.id })" [matTooltip]="s.name">
-                  <app-sticker [sticker]="{ kind: 'image', value: s.id }" />
-                </button>
-              }
-            </div>
-          } @else {
-            <p class="muted empty">Você ainda não criou figurinhas. Envie imagens em <b>Personalizar › Figurinhas</b>.</p>
+          <input #picker type="file" [accept]="accept" multiple hidden (change)="upload($event)" />
+          <div class="grid" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
+            <button class="cell import" (click)="picker.click()" [disabled]="importer.busy()" matTooltip="Importar imagens ou pacote .json">
+              <mat-icon>{{ importer.busy() ? 'hourglass_top' : 'upload_file' }}</mat-icon>
+            </button>
+            @for (s of prefs.customStickers(); track s.id) {
+              <button class="cell" (click)="pick({ kind: 'image', value: s.id })" [matTooltip]="s.name">
+                <app-sticker [sticker]="{ kind: 'image', value: s.id }" />
+              </button>
+            }
+          </div>
+          @if (!prefs.customStickers().length) {
+            <p class="muted empty">
+              Você ainda não tem figurinhas. Importe imagens (ou um pacote <code>.json</code>), arraste arquivos para cá ou cole
+              uma imagem com Ctrl+V.
+            </p>
           }
         </mat-tab>
       </mat-tab-group>
@@ -81,14 +89,17 @@ export type StickerPickerResult = StickerRef | 'remove';
     .cell:hover, .cell:focus-visible { background: var(--mat-sys-surface-container-highest); }
     .emoji { font-size: 26px; line-height: 1; }
     .pack { font: var(--mat-sys-title-small); margin: 12px 0 0; }
-    .empty { padding: 24px 0; }
+    .empty { padding: 12px 0 24px; }
+    .import { border: 2px dashed var(--mat-sys-outline-variant); color: var(--mat-sys-primary); }
   `,
 })
 export class StickerPickerDialog {
   protected readonly data = inject<{ allowRemove: boolean }>(MAT_DIALOG_DATA);
   protected readonly ref = inject<MatDialogRef<StickerPickerDialog, StickerPickerResult>>(MatDialogRef);
   protected readonly prefs = inject(PreferencesStore);
+  protected readonly importer = inject(StickerImporter);
   protected readonly packs = DEFAULT_STICKER_PACKS;
+  protected readonly accept = STICKER_IMPORT_ACCEPT;
 
   protected readonly recent = computed<StickerRef[]>(() =>
     (this.prefs.prefs()?.recentStickers ?? [])
@@ -102,5 +113,28 @@ export class StickerPickerDialog {
   protected pick(sticker: StickerRef): void {
     void this.prefs.rememberSticker(sticker);
     this.ref.close(sticker);
+  }
+
+  protected upload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    void this.importer.importFiles(files);
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
+    void this.importer.importFiles(Array.from(event.dataTransfer?.files ?? []));
+  }
+
+  protected onPaste(event: ClipboardEvent): void {
+    if ((event.target as HTMLElement | null)?.closest('input, textarea, [contenteditable]')) return;
+    void this.importer.importClipboard(event);
   }
 }

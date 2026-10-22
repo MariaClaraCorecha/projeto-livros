@@ -2,21 +2,38 @@ import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DEFAULT_STICKER_PACKS } from '../../../domain/defaults';
-import { toThumbnail } from '../../../core/image';
+import { STICKER_IMPORT_ACCEPT, StickerImporter } from '../../shared/sticker-importer';
 import { PreferencesStore } from '../../state/preferences.store';
 
 @Component({
   selector: 'app-stickers-tab',
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, MatProgressSpinnerModule],
+  host: { '(window:paste)': 'onPaste($event)' },
   template: `
-    <section>
+    <section class="drop-zone" [class.dragging]="dragging()" (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)"
+             (drop)="onDrop($event)">
       <h2>Minhas figurinhas</h2>
-      <p class="muted">Envie imagens (PNG com fundo transparente fica ótimo) para colar nos trechos que você marcar.</p>
-      <input #picker type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple hidden (change)="upload($event)" />
+      <p class="muted">
+        Envie imagens (PNG com fundo transparente fica ótimo) para colar nos trechos que você marcar. Também dá para arrastar
+        arquivos para cá, colar uma imagem com <kbd>Ctrl</kbd>+<kbd>V</kbd> ou importar um pacote <code>.json</code> exportado
+        por outra pessoa.
+      </p>
+      <input #picker type="file" [accept]="accept" multiple hidden (change)="upload($event)" />
+      <div class="sticker-actions">
+        <button mat-stroked-button (click)="picker.click()" [disabled]="importer.busy()">
+          <mat-icon>upload_file</mat-icon> Importar
+        </button>
+        <button mat-button (click)="importer.exportPack()" [disabled]="!prefs.customStickers().length">
+          <mat-icon>download</mat-icon> Exportar pacote
+        </button>
+        @if (importer.busy()) {
+          <mat-spinner diameter="20" />
+        }
+      </div>
       <div class="sticker-grid">
-        <button class="sticker-cell add" (click)="picker.click()" [disabled]="busy()">
+        <button class="sticker-cell add" (click)="picker.click()" [disabled]="importer.busy()">
           <mat-icon>add_photo_alternate</mat-icon>
           <span>Enviar</span>
         </button>
@@ -46,29 +63,34 @@ import { PreferencesStore } from '../../state/preferences.store';
 })
 export class StickersTabComponent {
   protected readonly prefs = inject(PreferencesStore);
-  private readonly snack = inject(MatSnackBar);
+  protected readonly importer = inject(StickerImporter);
   protected readonly packs = DEFAULT_STICKER_PACKS;
-  protected readonly busy = signal(false);
+  protected readonly accept = STICKER_IMPORT_ACCEPT;
+  protected readonly dragging = signal(false);
 
-  protected async upload(event: Event): Promise<void> {
+  protected upload(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = '';
-    this.busy.set(true);
-    try {
-      for (const file of files) {
-        if (file.size > 5 * 1024 * 1024) {
-          this.snack.open(`"${file.name}" é muito grande (máx. 5 MB).`, 'OK');
-          continue;
-        }
-        // PNG preserva a transparência; 192px é suficiente para uma figurinha.
-        const dataUrl = await toThumbnail(file, 192, 'image/png');
-        await this.prefs.addSticker(file.name.replace(/\.[^.]+$/, ''), dataUrl);
-      }
-    } catch {
-      this.snack.open('Não foi possível ler uma das imagens.', 'OK');
-    } finally {
-      this.busy.set(false);
-    }
+    void this.importer.importFiles(files);
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    this.dragging.set(true);
+  }
+
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(false);
+    void this.importer.importFiles(Array.from(event.dataTransfer?.files ?? []));
+  }
+
+  protected onPaste(event: ClipboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('input, textarea, [contenteditable]')) return;
+    void this.importer.importClipboard(event);
   }
 }

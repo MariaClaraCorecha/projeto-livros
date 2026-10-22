@@ -10,6 +10,8 @@ import {
   ManageIconsUseCase,
   ManageStickersUseCase,
   SavePreferencesUseCase,
+  StickerData,
+  StickerPackFile,
 } from '../../application/use-cases';
 import { SessionStore } from './session.store';
 
@@ -159,6 +161,17 @@ export class PreferencesStore {
   async addSticker(name: string, dataUrl: string): Promise<void> {
     const sticker = await this.stickersUseCase.create(name, dataUrl);
     this.customStickers.update((list) => [...list, sticker]);
+  }
+
+  /** Adiciona várias figurinhas (importação) e retorna quantas eram novas. */
+  async addStickers(items: readonly StickerData[]): Promise<number> {
+    const created = await this.stickersUseCase.createMany(items);
+    if (created.length) this.customStickers.update((list) => [...list, ...created]);
+    return created.length;
+  }
+
+  exportStickers(): Promise<StickerPackFile> {
+    return this.stickersUseCase.exportPack();
   }
 
   async removeSticker(id: string): Promise<void> {

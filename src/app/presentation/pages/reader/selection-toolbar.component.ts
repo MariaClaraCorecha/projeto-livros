@@ -11,6 +11,8 @@ import { PreferencesStore } from '../../state/preferences.store';
 @Component({
   selector: 'app-selection-toolbar',
   imports: [RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, HighlighterSwatchComponent],
+  // Sem isso o `mousedown` desfaz a seleção do texto, a barra some e o clique no marca-texto se perde.
+  host: { '(mousedown)': '$event.preventDefault()' },
   template: `
     <div class="quote" [title]="quote()">“{{ quote() }}”</div>
     <div class="row">

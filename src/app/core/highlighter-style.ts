@@ -1,9 +1,8 @@
 import { Highlighter } from '../domain/entities';
 
-/** Estilos CSS de cada tipo de marca-texto (usados no texto do livro e nas amostras da interface). */
+
 export function highlighterCss(h: Highlighter | null): Partial<CSSStyleDeclaration> {
   if (!h) {
-    // Anotação sem marca-texto (só comentário/figurinha): pontilhado discreto.
     return { textDecoration: 'underline dotted', textDecorationColor: '#868e96', textUnderlineOffset: '3px' };
   }
   const fill = withAlpha(h.color, h.opacity);

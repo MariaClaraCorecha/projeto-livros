@@ -307,6 +307,33 @@ mat-chip-listbox {
 }
 
 // Figurinhas
+.drop-zone {
+  border-radius: 16px;
+  transition: background-color 0.15s, outline-color 0.15s;
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+
+  &.dragging {
+    background: var(--mat-sys-primary-container);
+    outline-color: var(--mat-sys-primary);
+  }
+}
+
+.sticker-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+kbd {
+  font: var(--mat-sys-label-small);
+  padding: 1px 5px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+}
+
 .sticker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));

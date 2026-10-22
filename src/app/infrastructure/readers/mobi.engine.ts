@@ -235,8 +235,20 @@ export class MobiEngine implements ReaderEngine {
       if (!this.paginated) this.emitLocation();
     };
     const onPointerUp = () => setTimeout(() => this.checkSelection(), 0);
+    // Só fecha a barra de anotação se a seleção foi desfeita dentro do livro: cliques na própria
+    // barra (ou em outro ponto da interface) não podem descartar o trecho escolhido.
+    let pointerInBook = true;
+    const onPointerDown = (e: PointerEvent) => (pointerInBook = this.scroller.contains(e.target as Node));
+    let selectionTimer: ReturnType<typeof setTimeout> | undefined;
     const onSelectionChange = () => {
-      if (document.getSelection()?.isCollapsed) this.events.selected(null);
+      clearTimeout(selectionTimer);
+      const selection = document.getSelection();
+      if (selection?.isCollapsed) {
+        if (pointerInBook) this.events.selected(null);
+      } else {
+        // Seleção por toque (alças do celular) não dispara `pointerup` no texto.
+        selectionTimer = setTimeout(() => this.checkSelection(), 350);
+      }
     };
     const onClick = (e: MouseEvent) => {
       const el = (e.target as Element).closest?.(`.${ANN_CLASS}`) as HTMLElement | null;
@@ -246,8 +258,13 @@ export class MobiEngine implements ReaderEngine {
     this.scroller.addEventListener('scroll', onScroll, { passive: true });
     this.scroller.addEventListener('pointerup', onPointerUp);
     this.scroller.addEventListener('click', onClick);
+    document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('selectionchange', onSelectionChange);
-    this.cleanup.push(() => document.removeEventListener('selectionchange', onSelectionChange));
+    this.cleanup.push(() => {
+      clearTimeout(selectionTimer);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('selectionchange', onSelectionChange);
+    });
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     let offset = 0;
