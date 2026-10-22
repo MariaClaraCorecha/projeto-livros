@@ -38,6 +38,10 @@ export class LibraryStore {
   readonly importing = signal(0);
   readonly query = signal('');
   readonly sort = signal<LibrarySort>('manual');
+  /** Livro sendo arrastado na estante (a barra lateral vira alvo de soltura). */
+  readonly draggingBook = signal(false);
+  /** Estante da barra lateral sob o ponteiro durante o arraste (`null` = "Sem estante", `undefined` = nenhuma). */
+  readonly dropTarget = signal<string | null | undefined>(undefined);
 
   readonly filteredBooks = computed(() => {
     const q = normalize(this.query());

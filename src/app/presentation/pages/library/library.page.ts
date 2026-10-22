@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragDrop, CdkDragMove, CdkDragPlaceholder, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -59,7 +59,10 @@ export class LibraryPage {
 
   protected readonly view = computed(() => this.estante() ?? 'todos');
   protected readonly customShelf = computed(() => this.library.shelves().find((s) => s.id === this.view()) ?? null);
-  protected readonly canDrag = computed(() => this.library.sort() === 'manual' && !this.library.query());
+  /** A ordem só pode ser mudada à mão em "Minha ordem" e sem busca; mudar de estante funciona sempre. */
+  protected readonly canReorder = computed(() => this.library.sort() === 'manual' && !this.library.query());
+  /** No toque, é preciso segurar um pouco antes de arrastar (senão a página não rola). */
+  protected readonly dragDelay = { touch: 300, mouse: 0 };
 
   protected readonly title = computed(() => {
     switch (this.view()) {
@@ -156,10 +159,43 @@ export class LibraryPage {
 
   /* Arrastar entre estantes ---------------------------------------------- */
 
+  protected onDragMoved(event: CdkDragMove<Book>): void {
+    const target = sidebarShelfAt(event.pointerPosition);
+    if (target !== this.library.dropTarget()) this.library.dropTarget.set(target);
+  }
+
+  protected onDragEnded(): void {
+    this.library.draggingBook.set(false);
+    this.library.dropTarget.set(undefined);
+  }
+
   protected drop(event: CdkDragDrop<string | null, string | null, Book>): void {
     const book = event.item.data;
-    if (event.previousContainer === event.container && event.previousIndex === event.currentIndex) return;
-    void this.library.moveBook(book.id, event.container.data, event.currentIndex);
+    if (!event.isPointerOverContainer) {
+      this.dropOnSidebar(book, event.dropPoint);
+      return;
+    }
+    const shelfId = event.container.data;
+    if (event.previousContainer !== event.container) {
+      void this.library.moveBook(book.id, shelfId, this.canReorder() ? event.currentIndex : undefined);
+    } else if (this.canReorder() && event.previousIndex !== event.currentIndex) {
+      void this.library.moveBook(book.id, shelfId, event.currentIndex);
+    }
+  }
+
+  /** Livro solto fora das prateleiras: talvez sobre uma estante da barra lateral. */
+  protected dropOnSidebar(book: Book, point: { x: number; y: number }): void {
+    const shelfId = sidebarShelfAt(point);
+    if (shelfId !== undefined && shelfId !== book.shelfId) void this.moveTo(book, shelfId);
+  }
+
+  private async moveTo(book: Book, shelfId: string | null): Promise<void> {
+    await this.library.moveBook(book.id, shelfId);
+    const name = this.library.shelves().find((s) => s.id === shelfId)?.name ?? 'Sem estante';
+    this.snack
+      .open(`"${book.title}" foi para "${name}".`, 'Desfazer')
+      .onAction()
+      .subscribe(() => void this.library.moveBook(book.id, book.shelfId, book.order));
   }
 
   /* Ações -------------------------------------------------------------- */
@@ -169,12 +205,9 @@ export class LibraryPage {
       case 'favorite':
         await this.library.updateBook(book, { favorite: !book.favorite });
         break;
-      case 'move': {
-        await this.library.moveBook(book.id, action.shelfId);
-        const name = this.library.shelves().find((s) => s.id === action.shelfId)?.name ?? 'Sem estante';
-        this.snack.open(`Movido para "${name}".`);
+      case 'move':
+        await this.moveTo(book, action.shelfId);
         break;
-      }
       case 'edit': {
         const result = await firstValueFrom(
           this.dialog.open<BookEditDialog, Book, BookEditResult>(BookEditDialog, { data: book, width: '560px' }).afterClosed(),
@@ -219,4 +252,11 @@ export class LibraryPage {
   protected trackSection(section: ShelfSection): string {
     return section.id ?? '__none__';
   }
+}
+
+/** Estante da barra lateral sob o ponto (`null` = "Sem estante"; `undefined` = nenhuma). */
+function sidebarShelfAt(point: { x: number; y: number }): string | null | undefined {
+  const el = document.elementFromPoint(point.x, point.y)?.closest<HTMLElement>('[data-book-drop]');
+  if (!el) return undefined;
+  return el.dataset['bookDrop'] || null;
 }

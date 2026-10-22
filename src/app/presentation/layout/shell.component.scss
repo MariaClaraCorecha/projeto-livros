@@ -139,3 +139,16 @@
 .page {
   flex: 1;
 }
+
+// Estantes como alvo ao arrastar livros
+.drop-candidate {
+  outline: 1px dashed var(--mat-sys-outline);
+  outline-offset: -3px;
+  border-radius: 24px;
+}
+
+.drop-target {
+  outline: 2px solid var(--mat-sys-primary);
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}

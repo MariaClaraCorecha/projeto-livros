@@ -9,6 +9,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Highlighter, HIGHLIGHTER_STYLE_LABELS, HighlighterStyle } from '../../../domain/entities';
 import { highlighterStyle } from '../../../core/highlighter-style';
+import { HIGHLIGHTER_COLORS, HIGHLIGHTER_PALETTE } from '../../../domain/defaults';
 import { PreferencesStore } from '../../state/preferences.store';
 
 @Component({
@@ -33,9 +34,9 @@ import { PreferencesStore } from '../../state/preferences.store';
           </mat-form-field>
           <div class="color-row">
             <label>Cor</label>
-            @for (c of palette; track c) {
-              <button class="swatch" [style.background]="c" [class.selected]="draft().color === c" (click)="patch({ color: c })"
-                      [attr.aria-label]="c"></button>
+            @for (c of palette; track c.hex) {
+              <button class="swatch" [style.background]="c.hex" [class.selected]="draft().color === c.hex" (click)="patch({ color: c.hex })"
+                      [matTooltip]="c.name" [attr.aria-label]="c.name"></button>
             }
             <input type="color" [value]="draft().color" (input)="patch({ color: $any($event.target).value })" aria-label="Outra cor" />
           </div>
@@ -94,9 +95,9 @@ export class HighlightersTabComponent {
   protected readonly prefs = inject(PreferencesStore);
   protected readonly labels = HIGHLIGHTER_STYLE_LABELS;
   protected readonly styles = (Object.keys(HIGHLIGHTER_STYLE_LABELS) as HighlighterStyle[]).map((id) => ({ id, label: HIGHLIGHTER_STYLE_LABELS[id] }));
-  protected readonly palette = ['#ffd43b', '#69db7c', '#4dabf7', '#f783ac', '#ffa94d', '#9775fa', '#fa5252', '#20c997', '#868e96', '#212529'];
+  protected readonly palette = HIGHLIGHTER_PALETTE;
 
-  private readonly empty = (): Highlighter => ({ id: '', name: '', color: '#20c997', style: 'highlight', opacity: 0.45, builtIn: false });
+  private readonly empty = (): Highlighter => ({ id: '', name: '', color: HIGHLIGHTER_COLORS.teal.hex, style: 'highlight', opacity: 0.45, builtIn: false });
   protected readonly draft = signal<Highlighter>(this.empty());
   protected readonly editing = computed(() => this.draft().id !== '');
   protected readonly previewStyle = computed(() => highlighterStyle(this.draft()));

@@ -35,15 +35,18 @@ export type AnnotationDialogResult = { action: 'save'; draft: AnnotationDraft } 
     <mat-dialog-content class="dialog-body">
       <blockquote>{{ data.quote }}</blockquote>
 
-      <span class="label">Marca-texto</span>
-      <div class="swatches">
-        <button class="none" [class.selected]="highlighterId() === null" (click)="highlighterId.set(null)" matTooltip="Sem marca-texto">
-          <mat-icon>format_color_reset</mat-icon>
-        </button>
-        @for (h of prefs.highlighters(); track h.id) {
-          <app-highlighter-swatch [highlighter]="h" [selected]="highlighterId() === h.id" (click)="highlighterId.set(h.id)" />
-        }
-      </div>
+      <!-- Novas anotações usam o marca-texto escolhido na barra de seleção; aqui só se troca o de uma anotação existente. -->
+      @if (data.annotation) {
+        <span class="label">Marca-texto</span>
+        <div class="swatches">
+          <button class="none" [class.selected]="highlighterId() === null" (click)="highlighterId.set(null)" matTooltip="Sem marca-texto">
+            <mat-icon>format_color_reset</mat-icon>
+          </button>
+          @for (h of prefs.highlighters(); track h.id) {
+            <app-highlighter-swatch [highlighter]="h" [selected]="highlighterId() === h.id" (click)="highlighterId.set(h.id)" />
+          }
+        </div>
+      }
 
       <mat-form-field appearance="outline" class="full-width comment">
         <mat-label>Comentário</mat-label>

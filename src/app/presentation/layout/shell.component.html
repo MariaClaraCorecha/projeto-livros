@@ -8,7 +8,10 @@
     <mat-nav-list>
       @for (s of smartShelves; track s.id) {
         <a mat-list-item routerLink="/" [queryParams]="s.id === 'todos' ? {} : { estante: s.id }"
-           [activated]="isActive(s.id)" (click)="closeOnMobile()">
+           [activated]="isActive(s.id)" (click)="closeOnMobile()"
+           [attr.data-book-drop]="s.id === 'sem-estante' ? '' : null"
+           [class.drop-candidate]="s.id === 'sem-estante' && library.draggingBook()"
+           [class.drop-target]="s.id === 'sem-estante' && library.dropTarget() === null">
           <mat-icon matListItemIcon>{{ s.icon }}</mat-icon>
           <span matListItemTitle>{{ s.label }}</span>
           <span matListItemMeta class="count">{{ count(s.id) }}</span>
@@ -18,7 +21,7 @@
 
     <mat-divider />
     <div class="section-title">
-      <span>Minhas estantes</span>
+      <span>{{ library.draggingBook() ? 'Solte numa estante' : 'Minhas estantes' }}</span>
       <button mat-icon-button (click)="createShelf()" matTooltip="Nova estante" aria-label="Nova estante">
         <mat-icon>add</mat-icon>
       </button>
@@ -27,7 +30,8 @@
     <mat-nav-list cdkDropList (cdkDropListDropped)="dropShelf($event)" class="shelves">
       @for (shelf of library.shelves(); track shelf.id) {
         <a mat-list-item cdkDrag cdkDragLockAxis="y" routerLink="/" [queryParams]="{ estante: shelf.id }"
-           [activated]="isActive(shelf.id)" (click)="closeOnMobile()">
+           [activated]="isActive(shelf.id)" (click)="closeOnMobile()" [attr.data-book-drop]="shelf.id"
+           [class.drop-candidate]="library.draggingBook()" [class.drop-target]="library.dropTarget() === shelf.id">
           <mat-icon matListItemIcon [style.color]="shelf.color">{{ shelf.icon }}</mat-icon>
           <span matListItemTitle>{{ shelf.name }}</span>
           <span matListItemMeta class="count">{{ count(shelf.id) }}</span>
@@ -90,7 +94,6 @@
             <span class="muted">{{ user.email ?? (user.isGuest ? 'Modo convidado' : '') }}</span>
           </div>
           <mat-divider />
-          <a mat-menu-item routerLink="/personalizar"><mat-icon>palette</mat-icon><span>Personalizar</span></a>
           <button mat-menu-item (click)="signOut()"><mat-icon>logout</mat-icon><span>Sair</span></button>
         </mat-menu>
       }

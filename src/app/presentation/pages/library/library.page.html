@@ -73,18 +73,26 @@
     }
 
     @if (smartBooks(); as books) {
-      <div class="shelf-row static">
+      <!-- Sem reordenação aqui: os livros podem ser soltos nas estantes da barra lateral. -->
+      <div class="shelf-row static" cdkDropList cdkDropListOrientation="mixed" cdkDropListSortingDisabled
+           (cdkDropListDropped)="dropOnSidebar($event.item.data, $event.dropPoint)">
         @for (book of books; track book.id) {
-          <app-book-card [book]="book" [shelves]="library.shelves()" (action)="onBookAction(book, $event)" />
+          <app-book-card cdkDrag [cdkDragData]="book" [cdkDragStartDelay]="dragDelay" [book]="book" [shelves]="library.shelves()"
+                         (cdkDragStarted)="library.draggingBook.set(true)" (cdkDragMoved)="onDragMoved($event)"
+                         (cdkDragEnded)="onDragEnded()" (action)="onBookAction(book, $event)" />
         } @empty {
           <p class="muted">Nenhum livro aqui ainda.</p>
         }
       </div>
     } @else {
-      @if (!canDrag() && library.books().length) {
+      @if (library.books().length) {
         <p class="hint muted">
-          <mat-icon>info</mat-icon>
-          Para arrastar livros entre estantes, use a ordenação "Minha ordem" e limpe a busca.
+          <mat-icon>drag_pan</mat-icon>
+          @if (canReorder()) {
+            Arraste os livros para reorganizar, mudar de prateleira ou soltar numa estante da barra lateral.
+          } @else {
+            Arraste os livros para outra prateleira ou estante. Para mudar a ordem, use "Minha ordem" e limpe a busca.
+          }
         </p>
       }
       <div cdkDropListGroup>
@@ -103,18 +111,19 @@
               cdkDropList
               cdkDropListOrientation="mixed"
               [cdkDropListData]="section.id"
-              [cdkDropListDisabled]="!canDrag()"
+              [cdkDropListSortingDisabled]="!canReorder()"
               (cdkDropListDropped)="drop($event)"
             >
               @for (book of section.books; track book.id) {
-                <app-book-card cdkDrag [cdkDragData]="book" [book]="book" [shelves]="library.shelves()"
-                               (action)="onBookAction(book, $event)">
+                <app-book-card cdkDrag [cdkDragData]="book" [cdkDragStartDelay]="dragDelay" [book]="book" [shelves]="library.shelves()"
+                               (cdkDragStarted)="library.draggingBook.set(true)" (cdkDragMoved)="onDragMoved($event)"
+                               (cdkDragEnded)="onDragEnded()" (action)="onBookAction(book, $event)">
                   <div *cdkDragPlaceholder class="drop-placeholder"></div>
                 </app-book-card>
               } @empty {
                 <div class="empty-row muted">
                   <mat-icon>south</mat-icon>
-                  {{ canDrag() ? 'Arraste livros para esta estante' : 'Nenhum livro' }}
+                  Arraste livros para esta estante
                 </div>
               }
             </div>
