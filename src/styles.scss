@@ -1,0 +1,90 @@
+@use '@angular/material' as mat;
+@use './styles/reader';
+
+html {
+  color-scheme: light dark;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$orange-palette,
+        tertiary: mat.$azure-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+
+  &.theme-light {
+    color-scheme: light;
+  }
+  &.theme-dark {
+    color-scheme: dark;
+  }
+
+  // Cores próprias da estante (madeira) em claro/escuro.
+  --wood-light: light-dark(#c8955f, #6b4a2b);
+  --wood-dark: light-dark(#8a5a2e, #3f2a17);
+  --wood-shadow: light-dark(rgba(80, 45, 10, 0.35), rgba(0, 0, 0, 0.6));
+  --shelf-wall: light-dark(#f6efe6, #1e1b18);
+  --display-font: 'Fraunces', Georgia, serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined,
+.material-symbols-rounded,
+.material-symbols-sharp {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+}
+.material-symbols-sharp {
+  font-family: 'Material Symbols Sharp';
+}
+
+.mat-icon.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.muted {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.display-title {
+  font-family: var(--display-font);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+// Diálogos
+.mat-mdc-dialog-content.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+// Barra de seleção do leitor fica acima dos painéis.
+.cdk-overlay-container {
+  z-index: 1100;
+}
