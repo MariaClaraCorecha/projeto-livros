@@ -80,6 +80,6 @@
 
   @if (selection(); as sel) {
     <app-selection-toolbar [quote]="sel.quote" (highlight)="highlight($event)" (comment)="commentSelection()"
-                           (sticker)="stickerSelection()" (copy)="copySelection()" (dismiss)="dismissSelection()" />
+                           (sticker)="stickerSelection()" (voice)="voiceSelection()" (copy)="copySelection()" (dismiss)="dismissSelection()" />
   }
 </div>

@@ -258,6 +258,13 @@ export class ReaderPage {
     if (result?.action === 'save') await this.createFromSelection(result.draft, sel);
   }
 
+  protected async voiceSelection(): Promise<void> {
+    const sel = this.selection();
+    if (!sel) return;
+    const result = await this.openAnnotationDialog({ quote: sel.quote, startRecording: true });
+    if (result?.action === 'save') await this.createFromSelection(result.draft, sel);
+  }
+
   protected async stickerSelection(): Promise<void> {
     const sel = this.selection();
     if (!sel) return;
@@ -323,7 +330,7 @@ export class ReaderPage {
         const restored = await this.createAnnotation.execute(
           book.id,
           { anchor: annotation.anchor, quote: annotation.quote, locationLabel: annotation.locationLabel, sortKey: annotation.sortKey },
-          { highlighterId: annotation.highlighterId, comment: annotation.comment, sticker: annotation.sticker },
+          { highlighterId: annotation.highlighterId, comment: annotation.comment, sticker: annotation.sticker, audio: annotation.audio },
         );
         this.annotations.update((list) => [...list, restored].sort((a, b) => a.sortKey - b.sortKey));
       });

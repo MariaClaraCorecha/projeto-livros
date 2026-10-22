@@ -10,6 +10,12 @@ export type AnnotationAnchor =
   | { readonly type: 'cfi'; readonly cfi: string }
   | { readonly type: 'text'; readonly page: number; readonly start: number; readonly end: number };
 
+/** Nota de voz gravada junto da anotação (o Blob fica guardado direto no IndexedDB). */
+export interface AnnotationAudio {
+  readonly blob: Blob;
+  readonly durationMs: number;
+}
+
 export interface Annotation {
   readonly id: string;
   readonly ownerId: string;
@@ -20,6 +26,8 @@ export interface Annotation {
   highlighterId: string | null;
   comment: string;
   sticker: StickerRef | null;
+  /** Ausente em anotações gravadas antes da existência das notas de voz. */
+  audio?: AnnotationAudio | null;
   /** Rótulo legível da posição (capítulo, página…). */
   readonly locationLabel: string;
   /** Usado para ordenar as anotações na ordem de leitura. */

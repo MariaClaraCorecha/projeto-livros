@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Annotation, StickerRef } from '../../domain/entities';
+import { Annotation, AnnotationAudio, StickerRef } from '../../domain/entities';
 import { AnnotationRepository } from '../../domain/repositories';
 import { ReaderSelection } from '../ports';
 import { CurrentUser, newId } from './current-user';
@@ -18,6 +18,7 @@ export interface AnnotationDraft {
   highlighterId: string | null;
   comment?: string;
   sticker?: StickerRef | null;
+  audio?: AnnotationAudio | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,6 +39,7 @@ export class CreateAnnotationUseCase {
       highlighterId: draft.highlighterId,
       comment: draft.comment?.trim() ?? '',
       sticker: draft.sticker ?? null,
+      audio: draft.audio ?? null,
       createdAt: now,
       updatedAt: now,
     };

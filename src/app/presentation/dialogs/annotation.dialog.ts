@@ -7,11 +7,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { Annotation, StickerRef } from '../../domain/entities';
+import { Annotation, AnnotationAudio, StickerRef } from '../../domain/entities';
 import { AnnotationDraft } from '../../application/use-cases';
 import { PreferencesStore } from '../state/preferences.store';
 import { HighlighterSwatchComponent } from '../shared/highlighter-swatch.component';
 import { StickerViewComponent } from '../shared/sticker-view.component';
+import { VoiceRecorderComponent } from '../shared/voice-recorder.component';
 import { StickerPickerDialog, StickerPickerResult } from './sticker-picker.dialog';
 
 export interface AnnotationDialogData {
@@ -19,6 +20,8 @@ export interface AnnotationDialogData {
   annotation?: Annotation;
   /** Abre com o campo de comentário focado. */
   focusComment?: boolean;
+  /** Abre já gravando uma nota de voz. */
+  startRecording?: boolean;
   draft?: Partial<AnnotationDraft>;
 }
 
@@ -28,7 +31,7 @@ export type AnnotationDialogResult = { action: 'save'; draft: AnnotationDraft } 
   selector: 'app-annotation-dialog',
   imports: [
     FormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, MatTooltipModule,
-    HighlighterSwatchComponent, StickerViewComponent,
+    HighlighterSwatchComponent, StickerViewComponent, VoiceRecorderComponent,
   ],
   template: `
     <h2 mat-dialog-title>{{ data.annotation ? 'Anotação' : 'Nova anotação' }}</h2>
@@ -53,6 +56,9 @@ export type AnnotationDialogResult = { action: 'save'; draft: AnnotationDraft } 
         <textarea matInput [(ngModel)]="comment" rows="4"></textarea>
       </mat-form-field>
 
+      <span class="label">Nota de voz</span>
+      <app-voice-recorder #recorder [(audio)]="audio" [autoStart]="!!data.startRecording" class="voice" />
+
       <div class="sticker-row">
         <span class="label">Figurinha</span>
         @if (sticker(); as s) {
@@ -70,7 +76,7 @@ export type AnnotationDialogResult = { action: 'save'; draft: AnnotationDraft } 
       }
       <span class="spacer"></span>
       <button mat-button mat-dialog-close>Cancelar</button>
-      <button mat-flat-button (click)="save()" [disabled]="!canSave()">Salvar</button>
+      <button mat-flat-button (click)="save()" [disabled]="!canSave() || recorder.recording()">Salvar</button>
     </mat-dialog-actions>
   `,
   styles: `
@@ -83,6 +89,7 @@ export type AnnotationDialogResult = { action: 'save'; draft: AnnotationDraft } 
     .none.selected { outline: 2px solid var(--mat-sys-primary); outline-offset: 2px; }
     .sticker-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .current { --sticker-size: 36px; }
+    .voice { margin-bottom: 12px; }
     .danger { color: var(--mat-sys-error); }
   `,
 })
@@ -97,9 +104,10 @@ export class AnnotationDialog {
   );
   protected comment = this.data.annotation?.comment ?? this.data.draft?.comment ?? '';
   protected readonly sticker = signal<StickerRef | null>(this.data.annotation?.sticker ?? this.data.draft?.sticker ?? null);
+  protected readonly audio = signal<AnnotationAudio | null>(this.data.annotation?.audio ?? this.data.draft?.audio ?? null);
 
   protected canSave(): boolean {
-    return this.highlighterId() !== null || this.comment.trim() !== '' || this.sticker() !== null;
+    return this.highlighterId() !== null || this.comment.trim() !== '' || this.sticker() !== null || this.audio() !== null;
   }
 
   protected async pickSticker(): Promise<void> {
@@ -114,7 +122,7 @@ export class AnnotationDialog {
   protected save(): void {
     this.ref.close({
       action: 'save',
-      draft: { highlighterId: this.highlighterId(), comment: this.comment, sticker: this.sticker() },
+      draft: { highlighterId: this.highlighterId(), comment: this.comment, sticker: this.sticker(), audio: this.audio() },
     });
   }
 }

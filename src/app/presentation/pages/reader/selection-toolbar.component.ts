@@ -28,6 +28,7 @@ import { PreferencesStore } from '../../state/preferences.store';
       </div>
       <span class="divider"></span>
       <button mat-icon-button (click)="comment.emit()" matTooltip="Comentar" aria-label="Comentar"><mat-icon>add_comment</mat-icon></button>
+      <button mat-icon-button (click)="voice.emit()" matTooltip="Nota de voz" aria-label="Nota de voz"><mat-icon>mic</mat-icon></button>
       <button mat-icon-button (click)="sticker.emit()" matTooltip="Figurinha" aria-label="Figurinha"><mat-icon>add_reaction</mat-icon></button>
       <button mat-icon-button (click)="copy.emit()" matTooltip="Copiar" aria-label="Copiar"><mat-icon>content_copy</mat-icon></button>
       <button mat-icon-button (click)="dismiss.emit()" matTooltip="Fechar" aria-label="Fechar"><mat-icon>close</mat-icon></button>
@@ -51,6 +52,7 @@ export class SelectionToolbarComponent {
   readonly quote = input.required<string>();
   readonly highlight = output<Highlighter>();
   readonly comment = output<void>();
+  readonly voice = output<void>();
   readonly sticker = output<void>();
   readonly copy = output<void>();
   readonly dismiss = output<void>();
