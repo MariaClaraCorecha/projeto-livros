@@ -28,7 +28,8 @@ npm run build      # build de produção em dist/
 1. Crie um projeto em <https://console.firebase.google.com>.
 2. **Authentication → Sign-in method**: habilite **Google**.
 3. **Configurações do projeto → Seus apps**: registre um app Web e copie a configuração.
-4. Cole-a em `src/environments/environment.ts` (`firebase: { apiKey, authDomain, ... }`).
+4. Copie `src/environments/environment.example.ts` para `src/environments/environment.ts` (este fica fora do Git)
+   e cole a configuração em `firebase: { apiKey, authDomain, ... }`.
 5. Em **Authentication → Settings → Authorized domains**, confirme `localhost` e adicione o domínio de produção.
 
 Opcional: `googleFontsApiKey` no mesmo arquivo lista o catálogo **completo** do Google Fonts

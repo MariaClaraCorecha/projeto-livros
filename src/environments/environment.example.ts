@@ -1,5 +1,6 @@
 /**
- * Configuração do ambiente.
+ * Modelo da configuração do ambiente. Copie para `environment.ts` (ignorado pelo Git)
+ * e preencha com suas credenciais — nunca coloque chaves reais neste arquivo.
  *
  * 1. Crie um projeto em https://console.firebase.google.com
  * 2. Em "Authentication" > "Sign-in method", habilite o provedor Google.
