@@ -5,7 +5,7 @@ Leia **EPUB, PDF e MOBI** no navegador, organize-os em estantes e personalize a 
 
 ## Recursos
 
-- **Login com Google** (Firebase Authentication). Sem Firebase configurado, há um modo convidado para desenvolvimento.
+- **Login com Google** (Firebase Authentication). Também é possível entrar como visitante (sem conta; os dados ficam só neste navegador).
 - **Estantes**: crie, edite, reordene (arrastar) e mova livros entre estantes arrastando ou pelo menu. Visões "Lendo agora", "Favoritos" e "Sem estante", busca e ordenação.
 - **Leitor**: modo páginas ou rolagem, sumário, barra de progresso, posição salva automaticamente, tela cheia e atalhos (← →).
 - **Fontes**: as fontes padrão já vêm no sistema; o usuário adiciona mais do Google Fonts (catálogo ou digitando o nome).
@@ -46,7 +46,7 @@ src/app/
 ├── application/       Casos de uso (importar livro, mover entre estantes, criar anotação, gerenciar fontes…)
 │   └── ports/         Contratos de serviços externos: ReaderEngine, FontLoader, FontCatalog, BookMetadataExtractor
 ├── infrastructure/    Implementações concretas, ligadas por DI em infrastructure.providers.ts
-│   ├── auth/          Firebase (Google) e convidado
+│   ├── auth/          Firebase (Google) e visitante
 │   ├── persistence/   IndexedDB (idb)
 │   ├── fonts/         Google Fonts / Material Symbols
 │   ├── parsers/       Metadados e capas (epub.js, pdf.js, parser MOBI próprio)

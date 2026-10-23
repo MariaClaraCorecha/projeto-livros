@@ -40,10 +40,31 @@ export class LoginPage {
     } catch (e) {
       const code = (e as { code?: string }).code;
       if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
-        this.snack.open(e instanceof Error ? e.message : 'Não foi possível entrar.', 'OK', { duration: 6000 });
+        this.snack.open(signInErrorMessage(e), 'OK', { duration: 10000 });
       }
     } finally {
       this.busy.set(false);
     }
   }
+}
+
+/** Traduz os erros mais comuns do Firebase Auth; os demais mostram o código para facilitar o diagnóstico. */
+function signInErrorMessage(e: unknown): string {
+  const code = (e as { code?: string }).code;
+  switch (code) {
+    case 'auth/unauthorized-domain':
+      return `Este endereço (${location.hostname}) não está autorizado no Firebase. Adicione-o em Authentication → Settings → Authorized domains.`;
+    case 'auth/operation-not-allowed':
+      return 'O login com Google não está ativado no Firebase (Authentication → Sign-in method).';
+    case 'auth/network-request-failed':
+      return 'Falha de rede ao falar com o Google. Verifique a conexão, extensões de bloqueio ou o firewall.';
+    case 'auth/internal-error':
+      return 'O Google recusou o login. Verifique se o navegador bloqueia cookies de terceiros ou pop-ups. (auth/internal-error)';
+    case 'auth/account-exists-with-different-credential':
+      return 'Já existe uma conta com este e-mail usando outro método de login.';
+    case 'auth/user-disabled':
+      return 'Esta conta foi desativada no Firebase.';
+  }
+  const message = e instanceof Error ? e.message : 'Não foi possível entrar.';
+  return code && !message.includes(code) ? `${message} (${code})` : message;
 }

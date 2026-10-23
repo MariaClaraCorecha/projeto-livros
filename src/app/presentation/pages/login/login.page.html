@@ -45,13 +45,13 @@
         <mat-icon>info</mat-icon>
         <span>
           O login com Google precisa da configuração do Firebase em
-          <code>src/environments/environment.ts</code>. Enquanto isso, use o modo convidado.
+          <code>src/environments/environment.ts</code>. Enquanto isso, entre como visitante.
         </span>
       </div>
-      <button mat-stroked-button (click)="guest()" [disabled]="busy()">
-        <mat-icon>person</mat-icon> Entrar como convidado
-      </button>
     }
+    <button mat-stroked-button (click)="guest()" [disabled]="busy()">
+      <mat-icon>person</mat-icon> Entrar como visitante
+    </button>
 
     <p class="privacy muted">Os arquivos ficam salvos no seu navegador (IndexedDB) e não são enviados para servidores.</p>
   </section>

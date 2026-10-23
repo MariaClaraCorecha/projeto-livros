@@ -91,7 +91,7 @@
         <mat-menu #userMenu="matMenu" xPosition="before">
           <div class="user-card" (click)="$event.stopPropagation()">
             <strong>{{ user.name }}</strong>
-            <span class="muted">{{ user.email ?? (user.isGuest ? 'Modo convidado' : '') }}</span>
+            <span class="muted">{{ user.email ?? (user.isGuest ? 'Modo visitante' : '') }}</span>
           </div>
           <mat-divider />
           <button mat-menu-item (click)="signOut()"><mat-icon>logout</mat-icon><span>Sair</span></button>
