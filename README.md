@@ -34,6 +34,17 @@ npm run build      # build de produção em dist/
 Opcional: `googleFontsApiKey` no mesmo arquivo lista o catálogo **completo** do Google Fonts
 (<https://developers.google.com/fonts/docs/developer_api>). Sem ela é usada uma seleção curada.
 
+### Publicar na Vercel
+
+O `environment.ts` não vai para o Git; no build (`npm run build`) ele é gerado por
+`scripts/write-environment.mjs` a partir das variáveis de ambiente do projeto na Vercel:
+
+- `GOOGLE_CLIENT_ID` — o ID do cliente OAuth (obrigatório para o login com Google).
+- `GOOGLE_FONTS_API_KEY` — opcional.
+
+Adicione também o domínio da Vercel (ex.: `https://projeto-livros-seven.vercel.app`) em
+**Origens JavaScript autorizadas** do cliente OAuth.
+
 ## Arquitetura
 
 ```
