@@ -91,6 +91,8 @@ export interface ReaderEngineEvents {
   selected(selection: ReaderSelection | null): void;
   annotationClicked(annotationId: string): void;
   cacheUpdated(cache: string): void;
+  /** Toque no centro da página (estilo Kindle): mostra/esconde os menus. */
+  centerTapped(): void;
 }
 
 export interface ReaderOpenOptions {

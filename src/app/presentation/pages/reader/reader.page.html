@@ -1,4 +1,4 @@
-<div class="reader" [class.dark-paper]="paper().dark" [style.--paper-bg]="paper().background" [style.--paper-fg]="paper().textColor">
+<div class="reader" [class.dark-paper]="paper().dark" [class.immersive]="immersive()" [style.--paper-bg]="paper().background" [style.--paper-fg]="paper().textColor">
   <header class="topbar">
     <a mat-icon-button routerLink="/" matTooltip="Voltar à estante" aria-label="Voltar à estante">
       <mat-icon>arrow_back</mat-icon>
@@ -22,6 +22,7 @@
     <button mat-icon-button (click)="toggleFullscreen()" matTooltip="Tela cheia" aria-label="Tela cheia" class="hide-mobile">
       <mat-icon>fullscreen</mat-icon>
     </button>
+    <span class="immersive-status" aria-hidden="true">{{ book()?.title }}</span>
   </header>
 
   <mat-sidenav-container class="body" [hasBackdrop]="false">
@@ -76,6 +77,9 @@
       <input matSliderThumb [value]="(location()?.progress ?? 0) * 100" (change)="seek(+$any($event.target).value)" />
     </mat-slider>
     <span class="percent">{{ (location()?.progress ?? 0) * 100 | number: '1.0-0' }}%</span>
+    <span class="immersive-status" aria-hidden="true">
+      @if (location()?.label; as label) { {{ label }} · }{{ (location()?.progress ?? 0) * 100 | number: '1.0-0' }}%
+    </span>
   </footer>
 
   @if (selection(); as sel) {

@@ -9,6 +9,7 @@
 
 .topbar,
 .bottombar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -163,6 +164,52 @@
   width: 44px;
   text-align: right;
   opacity: 0.8;
+}
+
+/* Leitura limpa (estilo Kindle): os menus somem sem mudar o tamanho da página,
+   para o livro não ser repaginado; ficam só título e progresso discretos. */
+.immersive-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  font: var(--mat-sys-label-medium);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s;
+}
+
+.topbar > *,
+.bottombar > *,
+.nav {
+  transition: opacity 0.2s;
+}
+
+.reader.immersive {
+  .topbar,
+  .bottombar {
+    background: transparent;
+    border-color: transparent;
+
+    > :not(.immersive-status) {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  .immersive-status {
+    opacity: 0.55;
+  }
+
+  .nav {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 @media (max-width: 600px) {

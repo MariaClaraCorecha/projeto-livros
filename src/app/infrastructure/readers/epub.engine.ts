@@ -21,6 +21,8 @@ interface EpubContents {
 }
 interface EpubLocation {
   start: { cfi: string; href: string; index: number; percentage: number; displayed?: { page: number; total: number } };
+  atStart?: boolean;
+  atEnd?: boolean;
 }
 interface EpubNavItem {
   label: string;
@@ -60,6 +62,12 @@ const STYLE_ID = 'bk-reader-style';
 const SCROLL_COLUMN = 760;
 /** Espaço lateral mínimo para o texto não ficar embaixo das setas de navegação. */
 const NAV_SPACE = { wide: 56, narrow: 36 };
+/** Duração de cada metade da animação de virar a página (sai / entra), em ms. */
+const TURN_MS = 170;
+/** Fração da largura em cada lateral que vira a página ao tocar; o meio mostra/esconde os menus. */
+const TAP_ZONE = 0.3;
+
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class EpubEngine implements ReaderEngine {
   readonly reflowable = true;
@@ -76,6 +84,7 @@ export class EpubEngine implements ReaderEngine {
   private lastCfi: string | null = null;
   private language = '';
   private lastWheel = 0;
+  private turning = false;
   private destroyed = false;
 
   async open(container: HTMLElement, options: ReaderOpenOptions): Promise<void> {
@@ -137,11 +146,11 @@ export class EpubEngine implements ReaderEngine {
   }
 
   next(): void {
-    void this.rendition?.next();
+    void this.turn(1);
   }
 
   prev(): void {
-    void this.rendition?.prev();
+    void this.turn(-1);
   }
 
   async goTo(target: string): Promise<void> {
@@ -297,10 +306,23 @@ export class EpubEngine implements ReaderEngine {
 
   private listen(contents: EpubContents): void {
     const doc = contents.document;
+    let tapTimer: ReturnType<typeof setTimeout> | undefined;
     doc.addEventListener('click', (e) => {
-      const target = (e.target as Element | null)?.closest?.(`.${ANN_CLASS}`) as HTMLElement | null;
+      const el = e.target as Element | null;
+      const target = el?.closest?.(`.${ANN_CLASS}`) as HTMLElement | null;
       const id = target?.dataset['annId'];
-      if (id && doc.getSelection()?.isCollapsed !== false) this.events.annotationClicked(id);
+      if (id && doc.getSelection()?.isCollapsed !== false) {
+        this.events.annotationClicked(id);
+        return;
+      }
+      // Zonas de toque do Kindle (só no modo páginas; links e mídia seguem normais).
+      clearTimeout(tapTimer);
+      if (!this.paginated || e.detail > 1 || el?.closest?.('a, button, input, textarea, select, label, video, audio')) return;
+      const x = (contents.window.frameElement?.getBoundingClientRect().left ?? 0) + e.clientX;
+      // Espera um instante: um duplo clique (selecionar palavra) não deve virar a página.
+      tapTimer = setTimeout(() => {
+        if (doc.getSelection()?.isCollapsed !== false) this.onTap(x);
+      }, 250);
     });
     doc.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === 'PageDown') this.next();
@@ -308,28 +330,122 @@ export class EpubEngine implements ReaderEngine {
     });
     doc.addEventListener('wheel', (e) => this.onWheel(e), { passive: true });
 
-    // Deslizar o dedo para os lados vira a página (só no modo páginas e sem texto selecionado).
-    let touch: { x: number; y: number; t: number } | null = null;
+    // Arrastar o dedo para os lados: a página acompanha o dedo e, ao soltar, vira ou volta ao lugar.
+    // Usa `screenX` porque o iframe se move junto com o dedo (o `clientX` dele ficaria parado).
+    let touch: { x: number; y: number; t: number; dragging: boolean } | null = null;
     doc.addEventListener(
       'touchstart',
-      (e) => (touch = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() } : null),
+      (e) => {
+        const t = e.touches[0];
+        touch =
+          e.touches.length === 1 && this.paginated && !this.turning
+            ? { x: t.screenX, y: t.screenY, t: Date.now(), dragging: false }
+            : null;
+      },
+      { passive: true },
+    );
+    doc.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!touch) return;
+        const dx = e.touches[0].screenX - touch.x;
+        const dy = e.touches[0].screenY - touch.y;
+        if (!touch.dragging) {
+          if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+          // Gesto vertical ou seleção de texto (toque longo): não é virada de página.
+          if (Math.abs(dx) < Math.abs(dy) * 1.2 || doc.getSelection()?.isCollapsed === false) {
+            touch = null;
+            return;
+          }
+          touch.dragging = true;
+        }
+        const here = this.rendition?.currentLocation();
+        const atEdge = dx < 0 ? here?.atEnd : here?.atStart;
+        // Na primeira/última página o arraste resiste, como um elástico.
+        const shown = atEdge ? dx * 0.25 : dx;
+        void this.moveStage(shown, 1 - Math.min(0.6, Math.abs(shown) / this.stage.clientWidth), 0);
+      },
       { passive: true },
     );
     doc.addEventListener('touchend', (e) => {
       const start = touch;
       touch = null;
-      if (!start || !this.paginated || doc.getSelection()?.isCollapsed === false) return;
-      const dx = e.changedTouches[0].clientX - start.x;
-      const dy = e.changedTouches[0].clientY - start.y;
-      if (Date.now() - start.t < 700 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < 0) this.next();
-        else this.prev();
-      }
+      if (!start?.dragging) return;
+      const dx = e.changedTouches[0].screenX - start.x;
+      const flick = Date.now() - start.t < 300 && Math.abs(dx) > 40;
+      if (flick || Math.abs(dx) > this.stage.clientWidth * 0.25) void this.turn(dx < 0 ? 1 : -1, dx);
+      else void this.settleStage();
+    });
+    doc.addEventListener('touchcancel', () => {
+      if (touch?.dragging) void this.settleStage();
+      touch = null;
     });
     // Seleção desfeita (clique fora) → esconde a barra de anotação.
     doc.addEventListener('selectionchange', () => {
       if (doc.getSelection()?.isCollapsed) this.events.selected(null);
     });
+  }
+
+  /**
+   * Vira a página como no Kindle: a atual desliza para o lado e some, a próxima entra pelo
+   * lado oposto. `dragged` é quanto o dedo já arrastou (a animação continua dali).
+   */
+  private async turn(dir: 1 | -1, dragged = 0): Promise<void> {
+    const rendition = this.rendition;
+    if (!rendition || this.turning) return;
+    const go = () => (dir > 0 ? rendition.next() : rendition.prev());
+    if (!this.paginated || reducedMotion()) {
+      this.resetStage();
+      await go();
+      return;
+    }
+    const here = rendition.currentLocation();
+    if (dir > 0 ? here?.atEnd : here?.atStart) {
+      await this.settleStage();
+      return;
+    }
+    this.turning = true;
+    const distance = Math.max(this.stage.clientWidth * 0.3, Math.abs(dragged));
+    try {
+      await this.moveStage(-dir * distance, 0, TURN_MS);
+      await go();
+      await this.moveStage(dir * this.stage.clientWidth * 0.3, 0, 0);
+      await this.moveStage(0, 1, TURN_MS);
+    } finally {
+      this.resetStage();
+      this.turning = false;
+    }
+  }
+
+  /** Devolve a página ao lugar (arraste curto demais ou na primeira/última página). */
+  private async settleStage(): Promise<void> {
+    await this.moveStage(0, 1, TURN_MS);
+    this.resetStage();
+  }
+
+  private moveStage(x: number, opacity: number, ms: number): Promise<void> {
+    const s = this.stage.style;
+    s.transition = ms ? `transform ${ms}ms ease-out, opacity ${ms}ms ease-out` : 'none';
+    s.transform = `translateX(${x}px)`;
+    s.opacity = String(opacity);
+    if (!ms) {
+      void this.stage.offsetWidth; // aplica já, para a próxima transição partir daqui
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private resetStage(): void {
+    Object.assign(this.stage.style, { transition: '', transform: '', opacity: '' });
+  }
+
+  /** Toque na página: laterais viram a página, o meio mostra/esconde os menus. */
+  private onTap(x: number): void {
+    const rect = this.host.getBoundingClientRect();
+    const f = (x - rect.left) / rect.width;
+    if (f < TAP_ZONE) this.prev();
+    else if (f > 1 - TAP_ZONE) this.next();
+    else this.events.centerTapped();
   }
 
   /** No modo páginas, a rodinha do mouse vira a página (uma por gesto). */

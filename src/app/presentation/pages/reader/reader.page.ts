@@ -92,6 +92,8 @@ export class ReaderPage {
   protected readonly toc = signal<TocItem[]>([]);
   protected readonly panel = signal<Panel | null>(null);
   protected readonly reflowable = signal(true);
+  /** Leitura limpa (Kindle): menus escondidos, só título e progresso discretos. */
+  protected readonly immersive = signal(false);
 
   private engine: ReaderEngine | null = null;
   private engineReady = false;
@@ -161,6 +163,7 @@ export class ReaderPage {
           selected: (sel) => this.selection.set(sel),
           annotationClicked: (id) => this.onAnnotationClicked(id),
           cacheUpdated: (cache) => this.queueSave({ cache }),
+          centerTapped: () => this.toggleImmersive(),
         },
       });
       this.engineReady = true;
@@ -203,6 +206,11 @@ export class ReaderPage {
     void this.engine?.goToProgress(percent / 100);
   }
 
+  protected toggleImmersive(): void {
+    this.immersive.update((on) => !on);
+    if (this.immersive()) this.panel.set(null);
+  }
+
   protected togglePanel(panel: Panel): void {
     this.panel.update((p) => (p === panel ? null : panel));
   }
@@ -217,7 +225,10 @@ export class ReaderPage {
     if (this.dialog.openDialogs.length || target?.closest('input, textarea, [contenteditable]')) return;
     if (event.key === 'ArrowRight' || event.key === 'PageDown') this.next();
     else if (event.key === 'ArrowLeft' || event.key === 'PageUp') this.prev();
-    else if (event.key === 'Escape') this.dismissSelection();
+    else if (event.key === 'Escape') {
+      this.dismissSelection();
+      this.immersive.set(false);
+    }
   }
 
   private onRelocated(location: ReaderLocation): void {
