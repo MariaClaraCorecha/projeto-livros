@@ -39,7 +39,7 @@ export class LoginPage {
       await this.router.navigateByUrl('/');
     } catch (e) {
       const code = (e as { code?: string }).code;
-      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+      if (code !== 'google/popup_closed' && code !== 'google/access_denied') {
         this.snack.open(signInErrorMessage(e), 'OK', { duration: 10000 });
       }
     } finally {
@@ -48,22 +48,19 @@ export class LoginPage {
   }
 }
 
-/** Traduz os erros mais comuns do Firebase Auth; os demais mostram o código para facilitar o diagnóstico. */
+/** Traduz os erros mais comuns do Google Identity Services; os demais mostram o código para facilitar o diagnóstico. */
 function signInErrorMessage(e: unknown): string {
   const code = (e as { code?: string }).code;
   switch (code) {
-    case 'auth/unauthorized-domain':
-      return `Este endereço (${location.hostname}) não está autorizado no Firebase. Adicione-o em Authentication → Settings → Authorized domains.`;
-    case 'auth/operation-not-allowed':
-      return 'O login com Google não está ativado no Firebase (Authentication → Sign-in method).';
-    case 'auth/network-request-failed':
+    case 'google/popup_failed_to_open':
+      return 'O navegador bloqueou a janela de login do Google. Permita pop-ups para este site e tente de novo.';
+    case 'google/script-load-failed':
+      return 'Não foi possível carregar o login do Google. Verifique a conexão ou extensões de bloqueio.';
+    case 'google/network-request-failed':
       return 'Falha de rede ao falar com o Google. Verifique a conexão, extensões de bloqueio ou o firewall.';
-    case 'auth/internal-error':
-      return 'O Google recusou o login. Verifique se o navegador bloqueia cookies de terceiros ou pop-ups. (auth/internal-error)';
-    case 'auth/account-exists-with-different-credential':
-      return 'Já existe uma conta com este e-mail usando outro método de login.';
-    case 'auth/user-disabled':
-      return 'Esta conta foi desativada no Firebase.';
+    case 'google/invalid_client':
+    case 'google/unauthorized_client':
+      return `Este endereço (${location.origin}) não está em "Origens JavaScript autorizadas" do cliente OAuth no Google Cloud.`;
   }
   const message = e instanceof Error ? e.message : 'Não foi possível entrar.';
   return code && !message.includes(code) ? `${message} (${code})` : message;

@@ -4,7 +4,7 @@ import { AuthGateway } from '../../domain/repositories';
 import { clearGuestSession, GUEST_USER, readGuestSession, saveGuestSession } from './guest-session';
 
 /**
- * Usado apenas quando o Firebase ainda não foi configurado em `environment.ts`,
+ * Usado apenas quando o `googleClientId` ainda não foi configurado em `environment.ts`,
  * para que o app possa ser testado localmente.
  */
 @Injectable()
@@ -15,7 +15,7 @@ export class GuestAuthGateway extends AuthGateway {
 
   signInWithGoogle(): Promise<User> {
     return Promise.reject(
-      new Error('Configure o Firebase em src/environments/environment.ts para entrar com o Google.'),
+      new Error('Configure o googleClientId em src/environments/environment.ts para entrar com o Google.'),
     );
   }
 

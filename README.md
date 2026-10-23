@@ -5,7 +5,7 @@ Leia **EPUB, PDF e MOBI** no navegador, organize-os em estantes e personalize a 
 
 ## Recursos
 
-- **Login com Google** (Firebase Authentication). Também é possível entrar como visitante (sem conta; os dados ficam só neste navegador).
+- **Login com Google** (Google Identity Services / OAuth 2.0). Também é possível entrar como visitante (sem conta; os dados ficam só neste navegador).
 - **Estantes**: crie, edite, reordene (arrastar) e mova livros entre estantes arrastando ou pelo menu. Visões "Lendo agora", "Favoritos" e "Sem estante", busca e ordenação.
 - **Leitor**: modo páginas ou rolagem, sumário, barra de progresso, posição salva automaticamente, tela cheia e atalhos (← →).
 - **Fontes**: as fontes padrão já vêm no sistema; o usuário adiciona mais do Google Fonts (catálogo ou digitando o nome).
@@ -25,12 +25,11 @@ npm run build      # build de produção em dist/
 
 ### Configurar o login com Google
 
-1. Crie um projeto em <https://console.firebase.google.com>.
-2. **Authentication → Sign-in method**: habilite **Google**.
-3. **Configurações do projeto → Seus apps**: registre um app Web e copie a configuração.
-4. Copie `src/environments/environment.example.ts` para `src/environments/environment.ts` (este fica fora do Git)
-   e cole a configuração em `firebase: { apiKey, authDomain, ... }`.
-5. Em **Authentication → Settings → Authorized domains**, confirme `localhost` e adicione o domínio de produção.
+1. No Google Cloud, em <https://console.cloud.google.com/auth/clients>, crie um **ID do cliente OAuth** do tipo **Aplicativo da Web**
+   (configure antes a tela de consentimento em **Google Auth Platform → Branding**, se pedido).
+2. Em **Origens JavaScript autorizadas**, adicione `http://localhost:4200` e o domínio de produção. Não é preciso URI de redirecionamento.
+3. Copie `src/environments/environment.example.ts` para `src/environments/environment.ts` (este fica fora do Git)
+   e cole o ID do cliente em `googleClientId`.
 
 Opcional: `googleFontsApiKey` no mesmo arquivo lista o catálogo **completo** do Google Fonts
 (<https://developers.google.com/fonts/docs/developer_api>). Sem ela é usada uma seleção curada.
@@ -46,7 +45,7 @@ src/app/
 ├── application/       Casos de uso (importar livro, mover entre estantes, criar anotação, gerenciar fontes…)
 │   └── ports/         Contratos de serviços externos: ReaderEngine, FontLoader, FontCatalog, BookMetadataExtractor
 ├── infrastructure/    Implementações concretas, ligadas por DI em infrastructure.providers.ts
-│   ├── auth/          Firebase (Google) e visitante
+│   ├── auth/          Google Identity Services e visitante
 │   ├── persistence/   IndexedDB (idb)
 │   ├── fonts/         Google Fonts / Material Symbols
 │   ├── parsers/       Metadados e capas (epub.js, pdf.js, parser MOBI próprio)

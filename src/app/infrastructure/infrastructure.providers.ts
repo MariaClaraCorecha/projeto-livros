@@ -9,7 +9,7 @@ import {
   StickerRepository,
 } from '../domain/repositories';
 import { BookMetadataExtractor, FontCatalog, FontLoader, ReaderEngineFactory } from '../application/ports';
-import { FirebaseAuthGateway } from './auth/firebase-auth.gateway';
+import { GoogleIdentityGateway } from './auth/google-identity.gateway';
 import { GuestAuthGateway } from './auth/guest-auth.gateway';
 import { GoogleFontCatalog, GoogleFontLoader } from './fonts/google-fonts';
 import { DefaultBookMetadataExtractor } from './parsers/book-metadata.extractor';
@@ -24,9 +24,9 @@ import { LazyReaderEngineFactory } from './readers/reader-engine.factory';
 
 /** Liga as portas do domínio/aplicação às implementações concretas. */
 export function provideInfrastructure(): EnvironmentProviders {
-  const firebaseConfigured = !!environment.firebase.apiKey;
+  const googleConfigured = !!environment.googleClientId;
   return makeEnvironmentProviders([
-    { provide: AuthGateway, useClass: firebaseConfigured ? FirebaseAuthGateway : GuestAuthGateway },
+    { provide: AuthGateway, useClass: googleConfigured ? GoogleIdentityGateway : GuestAuthGateway },
     { provide: BookRepository, useClass: IdbBookRepository },
     { provide: ShelfRepository, useClass: IdbShelfRepository },
     { provide: AnnotationRepository, useClass: IdbAnnotationRepository },
